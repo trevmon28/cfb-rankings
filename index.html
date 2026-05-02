@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CFB Power Rankings 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0f1f3d;
+      --navy-light: #1a3260;
+      --blue: #2563eb;
+      --blue-light: #dbeafe;
+      --green: #15803d;
+      --green-light: #dcfce7;
+      --red: #b91c1c;
+      --red-light: #fee2e2;
+      --gold: #d97706;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--gray-100); color: var(--gray-800); min-height: 100vh; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+      color: white;
+      padding: 28px 32px 24px;
+      text-align: center;
+      border-bottom: 3px solid var(--blue);
+    }
+    .header h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
+    .header .subtitle { color: #93c5fd; font-size: 13px; margin-top: 6px; }
+    .header .updated { color: #bfdbfe; font-size: 12px; margin-top: 3px; }
+
+    /* ── Controls ── */
+    .controls {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 14px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .toggle-group {
+      display: flex;
+      gap: 0;
+      background: var(--gray-100);
+      border-radius: 8px;
+      padding: 3px;
+      border: 1px solid var(--gray-200);
+    }
+    .toggle-btn {
+      padding: 7px 22px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      color: var(--gray-500);
+      background: transparent;
+      transition: all 0.15s;
+    }
+    .toggle-btn.active { background: var(--navy); color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+    .conf-tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .conf-tab {
+      padding: 5px 13px;
+      border: 1px solid var(--gray-200);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-500);
+      background: white;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .conf-tab:hover { border-color: var(--blue); color: var(--blue); }
+    .conf-tab.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+    /* ── Table wrapper ── */
+    .table-wrap { padding: 20px 24px; overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+      font-size: 13px;
+    }
+
+    /* Section header row (EPA view) */
+    .section-hdr th {
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      text-align: center;
+      border-bottom: 2px solid transparent;
+    }
+    .section-hdr .off-hdr { color: #1d4ed8; border-color: #1d4ed8; background: #eff6ff; }
+    .section-hdr .def-hdr { color: #b91c1c; border-color: #b91c1c; background: #fff1f2; }
+    .section-hdr .empty-hdr { background: white; border-color: transparent; }
+
+    /* Col header row */
+    thead tr.col-hdr th {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--gray-500);
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      text-align: center;
+    }
+    thead tr.col-hdr th.text-left { text-align: left; }
+    thead tr.col-hdr th:hover { color: var(--navy); background: var(--gray-100); }
+    thead tr.col-hdr th.sorted { color: var(--blue); }
+    .sort-icon { display: inline-block; margin-left: 3px; font-size: 10px; opacity: 0.35; }
+    th.sorted .sort-icon { opacity: 1; color: var(--blue); }
+
+    /* Body rows */
+    tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f0f4ff; }
+
+    td {
+      padding: 11px 14px;
+      white-space: nowrap;
+      text-align: center;
+      font-size: 13px;
+    }
+    td.text-left { text-align: left; }
+
+    /* Rank cell */
+    .rk { width: 48px; font-weight: 700; }
+    .rank-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 12px; font-weight: 800;
+    }
+    .r1  { background: #fbbf24; color: #78350f; }
+    .r2  { background: #e5e7eb; color: #374151; }
+    .r3  { background: #fdba74; color: #7c2d12; }
+    .rtop { background: var(--blue-light); color: #1e40af; }
+    .rrest { color: var(--gray-400); font-size: 13px; }
+
+    /* Team cell */
+    .team-name { font-weight: 600; color: var(--gray-900); }
+    .conf-pill {
+      display: inline-block;
+      font-size: 10px; font-weight: 600;
+      color: var(--gray-400);
+      margin-left: 6px;
+    }
+    .record { color: var(--gray-400); font-size: 12px; }
+
+    /* Stat coloring */
+    .pos { color: var(--green); font-weight: 600; }
+    .neg { color: var(--red); font-weight: 600; }
+    .neutral { color: var(--gray-600); }
+
+    /* Score bar for power score */
+    .bar-wrap { display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .bar-bg { width: 52px; height: 5px; background: var(--gray-200); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .bar-fill { height: 100%; border-radius: 3px; background: var(--blue); }
+
+    /* Empty state */
+    .empty-row td {
+      text-align: center; padding: 48px 20px;
+      color: var(--gray-400); font-size: 14px;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 20px 24px;
+      color: var(--gray-400); font-size: 11px;
+      border-top: 1px solid var(--gray-200);
+      background: white;
+      margin: 0 24px 24px;
+      border-radius: 0 0 12px 12px;
+    }
+    .footer a { color: var(--blue); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 768px) {
+      .header { padding: 20px 16px; }
+      .header h1 { font-size: 22px; }
+      .controls { padding: 12px 16px; }
+      .table-wrap { padding: 12px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏈 CFB Power Rankings</h1>
+  <div class="subtitle" id="subtitle">2025 Season</div>
+  <div class="updated" id="updatedLine">Loading...</div>
+</div>
+
+<div class="controls">
+  <div class="toggle-group">
+    <button class="toggle-btn active" data-view="power" onclick="setView('power')">POWER RANKINGS</button>
+    <button class="toggle-btn" data-view="epa" onclick="setView('epa')">OFFENSE / DEFENSE</button>
+  </div>
+  <div class="conf-tabs" id="confTabs"></div>
+</div>
+
+<div class="table-wrap">
+  <table id="rankTable">
+    <thead id="tableHead"></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  <div class="footer">
+    Powered by <a href="https://github.com/trevmon28/CFBAnalytics" target="_blank">CFBAnalytics</a>
+    &nbsp;·&nbsp; Model: XGBoost + FastAI Stacked Ensemble
+    &nbsp;·&nbsp; Data: CFBD API · SP+ · FEI · SRS · FPI
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let allData   = [];
+  let curView   = 'power';
+  let curConf   = 'ALL';
+  let sortKey   = 'rank';
+  let sortAsc   = true;
+
+  // ── Column definitions ─────────────────────────────────────────────────────
+  const signedCls   = v => v > 0.001 ? 'pos' : v < -0.001 ? 'neg' : 'neutral';
+  const invSignedCls = v => v < -0.001 ? 'pos' : v > 0.001 ? 'neg' : 'neutral';
+  const fmt1  = v => v != null ? v.toFixed(1) : '—';
+  const fmt2  = v => v != null ? v.toFixed(2) : '—';
+  const fmt3  = v => v != null ? (v >= 0 ? '+' : '') + v.toFixed(3) : '—';
+  const fmtSgn1 = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) : '—';
+
+  const POWER_COLS = [
+    { key:'rank',             label:'Rk',         fmt: rankFmt,           sortable:true,  align:'center' },
+    { key:'team',             label:'Team',        fmt: teamFmt,           sortable:true,  align:'left'   },
+    { key:'record',           label:'Rec',         fmt: v=>v||'—',         sortable:false, align:'center', cls: ()=>'record' },
+    { key:'power_score',      label:'Score',       fmt: powerScoreFmt,     sortable:true,  align:'center' },
+    { key:'predicted_margin', label:'Pred Margin', fmt: fmtSgn1,           sortable:true,  align:'center', cls: signedCls },
+    { key:'elo',              label:'Elo',         fmt: v=>v!=null?Math.round(v):'—', sortable:true, align:'center' },
+    { key:'talent',           label:'Talent',      fmt: fmt1,              sortable:true,  align:'center' },
+    { key:'sp_overall',       label:'SP+',         fmt: fmtSgn1,           sortable:true,  align:'center', cls: signedCls },
+    { key:'sp_offense',       label:'SP+ Off',     fmt: fmtSgn1,           sortable:true,  align:'center', cls: signedCls },
+    { key:'sp_defense',       label:'SP+ Def',     fmt: fmtSgn1,           sortable:true,  align:'center', cls: invSignedCls },
+    { key:'fei',              label:'FEI',         fmt: fmt2,              sortable:true,  align:'center', cls: signedCls },
+    { key:'srs',              label:'SRS',         fmt: fmt1,              sortable:true,  align:'center', cls: signedCls },
+    { key:'fpi',              label:'FPI',         fmt: fmt1,              sortable:true,  align:'center', cls: signedCls },
+  ];
+
+  const EPA_COLS = [
+    { key:'rank',             label:'Rk',      fmt: rankFmt,  sortable:true,  align:'center', section:'' },
+    { key:'team',             label:'Team',    fmt: teamFmt,  sortable:true,  align:'left',   section:'' },
+    { key:'record',           label:'Rec',     fmt: v=>v||'—',sortable:false, align:'center', section:'', cls: ()=>'record' },
+    { key:'predicted_margin', label:'Margin',  fmt: fmtSgn1,  sortable:true,  align:'center', section:'', cls: signedCls },
+    { key:'epa_off',          label:'OVR',     fmt: fmt3,     sortable:true,  align:'center', section:'off', cls: signedCls },
+    { key:'epa_rush_off',     label:'Rush',    fmt: fmt3,     sortable:true,  align:'center', section:'off', cls: signedCls },
+    { key:'epa_pass_off',     label:'Pass',    fmt: fmt3,     sortable:true,  align:'center', section:'off', cls: signedCls },
+    { key:'success_off',      label:'Succ%',   fmt: v=>v!=null?(v*100).toFixed(1)+'%':'—', sortable:true, align:'center', section:'off', cls: signedCls },
+    { key:'epa_def',          label:'OVR',     fmt: fmt3,     sortable:true,  align:'center', section:'def', cls: invSignedCls },
+    { key:'epa_rush_def',     label:'Rush',    fmt: fmt3,     sortable:true,  align:'center', section:'def', cls: invSignedCls },
+    { key:'epa_pass_def',     label:'Pass',    fmt: fmt3,     sortable:true,  align:'center', section:'def', cls: invSignedCls },
+    { key:'success_def',      label:'Succ%',   fmt: v=>v!=null?(v*100).toFixed(1)+'%':'—', sortable:true, align:'center', section:'def', cls: invSignedCls },
+  ];
+
+  // ── Formatters ─────────────────────────────────────────────────────────────
+  function rankFmt(v) {
+    if (v === 1)  return `<span class="rank-badge r1">1</span>`;
+    if (v === 2)  return `<span class="rank-badge r2">2</span>`;
+    if (v === 3)  return `<span class="rank-badge r3">3</span>`;
+    if (v <= 10)  return `<span class="rank-badge rtop">${v}</span>`;
+    return `<span class="rrest">${v}</span>`;
+  }
+
+  function teamFmt(v, row) {
+    return `<span class="team-name">${v || '—'}</span><span class="conf-pill">${row.conference || ''}</span>`;
+  }
+
+  function powerScoreFmt(v, row) {
+    if (v == null) return '—';
+    const maxScore = Math.max(...allData.map(d => d.power_score || 0));
+    const pct = maxScore > 0 ? Math.min(100, (v / maxScore) * 100) : 0;
+    return `<div class="bar-wrap">
+      <span style="min-width:38px;text-align:right;font-weight:600">${v.toFixed(2)}</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(0)}%"></div></div>
+    </div>`;
+  }
+
+  // ── View / conf toggles ────────────────────────────────────────────────────
+  function setView(view) {
+    curView = view;
+    document.querySelectorAll('.toggle-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.view === view));
+    sortKey = 'rank'; sortAsc = true;
+    renderTable();
+  }
+
+  function setConf(conf) {
+    curConf = conf;
+    document.querySelectorAll('.conf-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.conf === conf));
+    renderTable();
+  }
+
+  function buildConfTabs() {
+    const confs = [...new Set(allData.map(d => d.conference).filter(Boolean))].sort();
+    const el = document.getElementById('confTabs');
+    el.innerHTML = '';
+    ['ALL', ...confs].forEach(conf => {
+      const btn = document.createElement('button');
+      btn.className = 'conf-tab' + (conf === curConf ? ' active' : '');
+      btn.dataset.conf = conf;
+      btn.textContent = conf;
+      btn.onclick = () => setConf(conf);
+      el.appendChild(btn);
+    });
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function renderHead() {
+    const cols = curView === 'power' ? POWER_COLS : EPA_COLS;
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '';
+
+    if (curView === 'epa') {
+      const sRow = document.createElement('tr');
+      sRow.className = 'section-hdr';
+      // empty: rank, team, rec, margin
+      const e = document.createElement('th'); e.colSpan = 4; e.className = 'empty-hdr'; sRow.appendChild(e);
+      const o = document.createElement('th'); o.colSpan = 4; o.className = 'off-hdr'; o.textContent = 'OFFENSE'; sRow.appendChild(o);
+      const d = document.createElement('th'); d.colSpan = 4; d.className = 'def-hdr'; d.textContent = 'DEFENSE'; sRow.appendChild(d);
+      thead.appendChild(sRow);
+    }
+
+    const hRow = document.createElement('tr');
+    hRow.className = 'col-hdr';
+    cols.forEach(col => {
+      const th = document.createElement('th');
+      const arrow = sortKey === col.key ? (sortAsc ? '▲' : '▼') : '⇅';
+      th.innerHTML = col.label + (col.sortable ? `<span class="sort-icon">${arrow}</span>` : '');
+      if (col.align === 'left') th.classList.add('text-left');
+      if (sortKey === col.key) th.classList.add('sorted');
+      if (col.sortable) {
+        th.onclick = () => {
+          if (sortKey === col.key) sortAsc = !sortAsc;
+          else { sortKey = col.key; sortAsc = col.key !== 'team'; }
+          renderTable();
+        };
+      }
+      hRow.appendChild(th);
+    });
+    thead.appendChild(hRow);
+  }
+
+  function renderTable() {
+    const cols = curView === 'power' ? POWER_COLS : EPA_COLS;
+    renderHead();
+
+    let rows = allData.filter(d => curConf === 'ALL' || d.conference === curConf);
+
+    rows = [...rows].sort((a, b) => {
+      let av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'string') return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      if (av == null) av = sortAsc ? Infinity : -Infinity;
+      if (bv == null) bv = sortAsc ? Infinity : -Infinity;
+      return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+    });
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="${cols.length}">No data — run the model notebook to generate rankings.</td></tr>`;
+      return;
+    }
+
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      cols.forEach(col => {
+        const td = document.createElement('td');
+        const val = row[col.key];
+        td.innerHTML = col.fmt ? col.fmt(val, row) : (val != null ? val : '—');
+        if (col.align === 'left') td.classList.add('text-left');
+        if (col.cls) {
+          const cls = col.cls(val);
+          if (cls) td.classList.add(cls);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Bootstrap ──────────────────────────────────────────────────────────────
+  async function init() {
+    try {
+      const res  = await fetch('data/rankings.json');
+      const json = await res.json();
+      allData = json.rankings || [];
+      const season = json.season || '2025';
+      const updated = json.updated || '—';
+      document.getElementById('subtitle').textContent = `${season} Season`;
+      document.getElementById('updatedLine').textContent = `Updated: ${updated}`;
+      buildConfTabs();
+      renderTable();
+    } catch (e) {
+      document.getElementById('updatedLine').textContent = 'No rankings data loaded';
+      document.getElementById('tableBody').innerHTML =
+        `<tr class="empty-row"><td colspan="13">Could not load rankings.json — run the notebook to generate data.</td></tr>`;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
