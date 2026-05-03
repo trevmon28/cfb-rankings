@@ -195,7 +195,58 @@
       color: var(--gray-400); font-size: 14px;
     }
 
-    /* Footer */
+    /* ── Glossary panel ── */
+    .glossary-wrap { display: none; padding: 20px 24px; }
+    .glossary-wrap.active { display: block; }
+    .glossary-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+      padding: 32px 36px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .glossary-card h2 {
+      font-size: 18px; font-weight: 800; color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .glossary-card .g-intro {
+      font-size: 13px; color: var(--gray-500); margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    .glossary-section { margin-bottom: 28px; }
+    .glossary-section h3 {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.8px; color: var(--blue);
+      border-bottom: 2px solid var(--blue-light);
+      padding-bottom: 6px; margin-bottom: 14px;
+    }
+    .glossary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 12px;
+    }
+    .g-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px 14px;
+      background: var(--gray-50);
+      border-radius: 8px;
+      border: 1px solid var(--gray-200);
+    }
+    .g-label {
+      font-size: 12px; font-weight: 800; color: var(--navy);
+      white-space: nowrap; min-width: 80px; padding-top: 1px;
+    }
+    .g-desc { font-size: 12px; color: var(--gray-600); line-height: 1.55; }
+    .g-source { font-size: 10px; color: var(--gray-400); margin-top: 3px; }
+    .g-note {
+      margin-top: 20px; padding: 12px 16px;
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 8px; font-size: 12px; color: #92400e; line-height: 1.55;
+    }
+    .g-note strong { color: #78350f; }
+
+    /* ── Footer ── */
     .footer {
       text-align: center; padding: 20px 24px;
       color: var(--gray-400); font-size: 11px;
@@ -227,11 +278,125 @@
   <div class="toggle-group">
     <button class="toggle-btn active" data-view="power" onclick="setView('power')">POWER RANKINGS</button>
     <button class="toggle-btn" data-view="epa" onclick="setView('epa')">OFFENSE / DEFENSE</button>
+    <button class="toggle-btn" data-view="glossary" onclick="setView('glossary')">STATS GLOSSARY</button>
   </div>
   <div class="conf-tabs" id="confTabs"></div>
 </div>
 
-<div class="table-wrap">
+<div class="glossary-wrap" id="glossaryWrap">
+  <div class="glossary-card">
+    <h2>Stats Glossary</h2>
+    <p class="g-intro">All metrics are opponent-adjusted where noted. Green values indicate better performance; red indicates worse. For defensive metrics, <em>lower</em> EPA allowed is better (displayed green).</p>
+
+    <div class="glossary-section">
+      <h3>Model Metrics</h3>
+      <div class="glossary-grid">
+        <div class="g-item">
+          <div>
+            <div class="g-label">Power Score</div>
+            <div class="g-desc">Composite z-score across all efficiency, talent, and ratings metrics. Higher = stronger team overall.</div>
+            <div class="g-source">Source: CFBAnalytics model</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">Pred Margin</div>
+            <div class="g-desc">XGBoost-predicted point margin vs. an average FBS opponent on a neutral field. Positive = favored.</div>
+            <div class="g-source">Source: CFBAnalytics XGBoost regressor</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">Elo</div>
+            <div class="g-desc">Rolling strength estimate updated after each game based on win/loss and margin relative to expectation. Roughly centered at 1500 for an average FBS team.</div>
+            <div class="g-source">Source: CFBAnalytics model</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">Talent</div>
+            <div class="g-desc">247Sports Composite recruiting rating aggregated over recent classes. Reflects roster quality ceiling independent of coaching or scheme.</div>
+            <div class="g-source">Source: 247Sports via CFBD API</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <h3>External Efficiency Ratings</h3>
+      <div class="glossary-grid">
+        <div class="g-item">
+          <div>
+            <div class="g-label">SP+</div>
+            <div class="g-desc">Opponent-adjusted, tempo-free efficiency rating. Splits into offense (higher = better) and defense (lower = better). Designed to be predictive, not descriptive.</div>
+            <div class="g-source">Source: ESPN / Bill Connelly via CFBD API</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">FEI</div>
+            <div class="g-desc">Fremeau Efficiency Index — scoring advantage per non-garbage possession a team would expect against an average opponent on a neutral field. Accounts for field position and game situation.</div>
+            <div class="g-source">Source: <a href="https://www.bcftoys.com" target="_blank">BCFToys</a></div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">SRS</div>
+            <div class="g-desc">Simple Rating System — margin of victory adjusted for strength of schedule. Iteratively solved so a team's rating equals its average margin adjusted for opponent quality.</div>
+            <div class="g-source">Source: CFBD API</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">FPI</div>
+            <div class="g-desc">Football Power Index — ESPN's predictive power index combining efficiency stats, recruiting, and injuries to forecast future game outcomes.</div>
+            <div class="g-source">Source: ESPN via CFBD API</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <h3>EPA — Expected Points Added</h3>
+      <div class="glossary-grid">
+        <div class="g-item">
+          <div>
+            <div class="g-label">EPA OVR</div>
+            <div class="g-desc">Average Expected Points Added per play across all play types. Measures how much value each play generates relative to the expected points from that down-distance-field position.</div>
+            <div class="g-source">Source: CFBD API advanced stats</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">Rush EPA</div>
+            <div class="g-desc">Average EPA per rushing play. Positive values mean the run game consistently gains more than expected; negative means it loses value on the ground.</div>
+            <div class="g-source">Source: CFBD API advanced stats</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">Pass EPA</div>
+            <div class="g-desc">Average EPA per passing play (including sacks). The pass game typically drives EPA more than the run game — elite offenses often exceed +0.3.</div>
+            <div class="g-source">Source: CFBD API advanced stats</div>
+          </div>
+        </div>
+        <div class="g-item">
+          <div>
+            <div class="g-label">Succ%</div>
+            <div class="g-desc">Success Rate — % of plays considered "successful": gaining ≥50% of yards needed on 1st down, ≥70% on 2nd, 100% on 3rd/4th. A consistency metric independent of big plays.</div>
+            <div class="g-source">Source: CFBD API advanced stats</div>
+          </div>
+        </div>
+      </div>
+      <div class="g-note">
+        <strong>Defense note:</strong> For defensive EPA columns, <em>negative values are good</em> — they mean the defense is forcing opponents into negative-value plays. The color coding is flipped accordingly (green = negative EPA allowed).
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tableWrap">
+  <div class="table-wrap">
   <table id="rankTable">
     <thead id="tableHead"></thead>
     <tbody id="tableBody"></tbody>
@@ -245,6 +410,7 @@
     &nbsp;·&nbsp; SP+ (ESPN)
     &nbsp;·&nbsp; SRS &amp; FPI (CFBD)
     &nbsp;·&nbsp; 247Sports Talent Composite
+  </div>
   </div>
 </div>
 
@@ -323,8 +489,13 @@
     curView = view;
     document.querySelectorAll('.toggle-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.view === view));
-    sortKey = 'rank'; sortAsc = true;
-    renderTable();
+
+    const isGlossary = view === 'glossary';
+    document.getElementById('glossaryWrap').classList.toggle('active', isGlossary);
+    document.getElementById('tableWrap').style.display = isGlossary ? 'none' : '';
+    document.getElementById('confTabs').style.display  = isGlossary ? 'none' : '';
+
+    if (!isGlossary) { sortKey = 'rank'; sortAsc = true; renderTable(); }
   }
 
   function setConf(conf) {
