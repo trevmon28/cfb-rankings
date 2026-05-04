@@ -278,6 +278,7 @@
   <div class="toggle-group">
     <button class="toggle-btn active" data-view="power" onclick="setView('power')">POWER RANKINGS</button>
     <button class="toggle-btn" data-view="epa" onclick="setView('epa')">OFFENSE / DEFENSE</button>
+    <button class="toggle-btn" data-view="ol" onclick="setView('ol')">OL / RETURNING</button>
     <button class="toggle-btn" data-view="glossary" onclick="setView('glossary')">STATS GLOSSARY</button>
   </div>
   <div class="conf-tabs" id="confTabs"></div>
@@ -392,6 +393,75 @@
         <strong>Defense note:</strong> For defensive EPA columns, <em>negative values are good</em> — they mean the defense is forcing opponents into negative-value plays. The color coding is flipped accordingly (green = negative EPA allowed).
       </div>
     </div>
+
+    <div class="glossary-section">
+      <h3>Returning Production</h3>
+      <div class="glossary-grid">
+        <div class="g-item"><div>
+          <div class="g-label">Ret%</div>
+          <div class="g-desc">Overall % of prior-season PPA (Expected Points Added) returning. Captures how much of a team's total production is back — offense and defense combined.</div>
+          <div class="g-source">Source: CFBD /player/returning API</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">QB%</div>
+          <div class="g-desc">% of prior-season QB PPA returning. The single highest-leverage returning production signal — a returning starter QB is worth ~3–4 pts/game vs. a new starter.</div>
+          <div class="g-source">Source: CFBD /ppa/players/season + /roster</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Skill%</div>
+          <div class="g-desc">% of WR/TE/RB/FB PPA returning. Measures skill position continuity — important for QB-receiver timing and run game familiarity.</div>
+          <div class="g-source">Source: CFBD /ppa/players/season + /roster</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">DL% / DB%</div>
+          <div class="g-desc">% of defensive line and defensive back PPA returning. DL% tracks pass rush continuity; DB% tracks coverage continuity. Both are strong early-season predictors.</div>
+          <div class="g-source">Source: CFBD /ppa/players/season + /roster</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <h3>OL / Pass Protection</h3>
+      <div class="glossary-grid">
+        <div class="g-item"><div>
+          <div class="g-label">Sack%</div>
+          <div class="g-desc">Offensive sack rate — sacks allowed as a % of total pass dropbacks. Lower is better. Elite OLs are typically below 4%; poor pass protection exceeds 7%.</div>
+          <div class="g-source">Source: Computed from CFBD /plays (play-by-play)</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Std/Pass Sk%</div>
+          <div class="g-desc">Sack rate split by down type. Standard downs (1st, 2nd-and-short, 3rd-and-short) vs. passing downs (2nd-and-8+, 3rd-and-5+). Passing down sack rate is a strong OL quality signal.</div>
+          <div class="g-source">Source: Computed from CFBD /plays</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Std/Pass LY</div>
+          <div class="g-desc">Football Outsiders Line Yards split by down type. The FO formula credits OL for the first 4 yards of a carry (100%), yards 5–10 (50%), and discounts beyond 10 (0%). Split by standard vs. passing downs isolates OL performance in expected-run vs. expected-pass situations.</div>
+          <div class="g-source">Source: Computed from CFBD /plays using FO Line Yards formula</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <h3>PFF Grades</h3>
+      <div class="glossary-grid">
+        <div class="g-item"><div>
+          <div class="g-label">PFF Off/Def</div>
+          <div class="g-desc">Pro Football Focus overall offensive and defensive team grades on a 0–100 scale. Grades above 70 are above average; above 80 is elite; below 50 is poor.</div>
+          <div class="g-source">Source: PFF College (manual CSV upload — Section 1d)</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Pass Blk / Rush</div>
+          <div class="g-desc">PFF pass blocking grade (OL protecting the QB) and pass rush grade (DL/EDGE disrupting the QB). The two most predictive PFF unit grades for game outcomes.</div>
+          <div class="g-source">Source: PFF College (manual CSV upload — Section 1d)</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Coverage</div>
+          <div class="g-desc">PFF coverage grade — how well the secondary limits separation and yards after catch. Displayed only when PFF data has been uploaded for the current season.</div>
+          <div class="g-source">Source: PFF College (manual CSV upload — Section 1d)</div>
+        </div></div>
+      </div>
+      <div class="g-note"><strong>Note:</strong> PFF grades show as — until a CSV export from your PFF subscription is uploaded via Section 1d of the notebook and rankings are regenerated.</div>
+    </div>
   </div>
 </div>
 
@@ -423,11 +493,16 @@
   let sortAsc   = true;
 
   // ── Column definitions ─────────────────────────────────────────────────────
-  const signedCls   = v => v > 0.001 ? 'pos' : v < -0.001 ? 'neg' : 'neutral';
+  const signedCls    = v => v > 0.001 ? 'pos' : v < -0.001 ? 'neg' : 'neutral';
   const invSignedCls = v => v < -0.001 ? 'pos' : v > 0.001 ? 'neg' : 'neutral';
-  const fmt1  = v => v != null ? v.toFixed(1) : '—';
-  const fmt2  = v => v != null ? v.toFixed(2) : '—';
-  const fmt3  = v => v != null ? (v >= 0 ? '+' : '') + v.toFixed(3) : '—';
+  const retCls       = v => v == null ? 'neutral' : v > 0.62 ? 'pos' : v < 0.42 ? 'neg' : 'neutral';
+  const sackCls      = v => v == null ? 'neutral' : v < 0.04 ? 'pos' : v > 0.07 ? 'neg' : 'neutral';
+  const lyardsCls    = v => v == null ? 'neutral' : v > 2.8  ? 'pos' : v < 2.3  ? 'neg' : 'neutral';
+  const pffCls       = v => v == null ? 'neutral' : v >= 70  ? 'pos' : v < 50   ? 'neg' : 'neutral';
+  const fmtPct = v => v != null ? (v * 100).toFixed(1) + '%' : '—';
+  const fmt1   = v => v != null ? v.toFixed(1) : '—';
+  const fmt2   = v => v != null ? v.toFixed(2) : '—';
+  const fmt3   = v => v != null ? (v >= 0 ? '+' : '') + v.toFixed(3) : '—';
   const fmtSgn1 = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) : '—';
 
   const POWER_COLS = [
@@ -444,6 +519,30 @@
     { key:'fei',              label:'FEI',         fmt: fmt2,              sortable:true,  align:'center', cls: signedCls },
     { key:'srs',              label:'SRS',         fmt: fmt1,              sortable:true,  align:'center', cls: signedCls },
     { key:'fpi',              label:'FPI',         fmt: fmt1,              sortable:true,  align:'center', cls: signedCls },
+  ];
+
+  const OL_COLS = [
+    { key:'rank',               label:'Rk',           fmt: rankFmt,  sortable:true,  align:'center', section:'' },
+    { key:'team',               label:'Team',          fmt: teamFmt,  sortable:true,  align:'left',   section:'' },
+    { key:'record',             label:'Rec',           fmt: v=>v||'—',sortable:false, align:'center', section:'', cls: ()=>'record' },
+    // Returning Production
+    { key:'ret_pct_ppa',        label:'Ret%',          fmt: fmtPct,   sortable:true,  align:'center', section:'ret', cls: retCls },
+    { key:'ret_pct_qb',         label:'QB%',           fmt: fmtPct,   sortable:true,  align:'center', section:'ret', cls: retCls },
+    { key:'ret_pct_skill',      label:'Skill%',        fmt: fmtPct,   sortable:true,  align:'center', section:'ret', cls: retCls },
+    { key:'ret_pct_dl',         label:'DL%',           fmt: fmtPct,   sortable:true,  align:'center', section:'ret', cls: retCls },
+    { key:'ret_pct_db',         label:'DB%',           fmt: fmtPct,   sortable:true,  align:'center', section:'ret', cls: retCls },
+    // OL / Pass Protection
+    { key:'sack_rate',          label:'Sack%',         fmt: fmtPct,   sortable:true,  align:'center', section:'ol',  cls: sackCls },
+    { key:'std_down_sack_rate', label:'Std Sk%',       fmt: fmtPct,   sortable:true,  align:'center', section:'ol',  cls: sackCls },
+    { key:'pass_down_sack_rate',label:'Pass Sk%',      fmt: fmtPct,   sortable:true,  align:'center', section:'ol',  cls: sackCls },
+    { key:'pbp_std_line_yards', label:'Std LY',        fmt: fmt2,     sortable:true,  align:'center', section:'ol',  cls: lyardsCls },
+    { key:'pbp_pass_line_yards',label:'Pass LY',       fmt: fmt2,     sortable:true,  align:'center', section:'ol',  cls: lyardsCls },
+    // PFF Grades
+    { key:'pff_offense',        label:'PFF Off',       fmt: fmt1,     sortable:true,  align:'center', section:'pff', cls: pffCls },
+    { key:'pff_defense',        label:'PFF Def',       fmt: fmt1,     sortable:true,  align:'center', section:'pff', cls: pffCls },
+    { key:'pff_pass_block',     label:'Pass Blk',      fmt: fmt1,     sortable:true,  align:'center', section:'pff', cls: pffCls },
+    { key:'pff_pass_rush',      label:'Pass Rush',     fmt: fmt1,     sortable:true,  align:'center', section:'pff', cls: pffCls },
+    { key:'pff_coverage',       label:'Coverage',      fmt: fmt1,     sortable:true,  align:'center', section:'pff', cls: pffCls },
   ];
 
   const EPA_COLS = [
@@ -495,7 +594,7 @@
     document.getElementById('tableWrap').style.display = isGlossary ? 'none' : '';
     document.getElementById('confTabs').style.display  = isGlossary ? 'none' : '';
 
-    if (!isGlossary) { sortKey = 'rank'; sortAsc = true; renderTable(); }
+    if (!isGlossary) { sortKey = view === 'ol' ? 'ret_pct_ppa' : 'rank'; sortAsc = view !== 'ol'; renderTable(); }
   }
 
   function setConf(conf) {
@@ -521,17 +620,24 @@
 
   // ── Render ─────────────────────────────────────────────────────────────────
   function renderHead() {
-    const cols = curView === 'power' ? POWER_COLS : EPA_COLS;
+    const cols = curView === 'power' ? POWER_COLS : curView === 'ol' ? OL_COLS : EPA_COLS;
     const thead = document.getElementById('tableHead');
     thead.innerHTML = '';
 
     if (curView === 'epa') {
       const sRow = document.createElement('tr');
       sRow.className = 'section-hdr';
-      // empty: rank, team, rec, margin
       const e = document.createElement('th'); e.colSpan = 4; e.className = 'empty-hdr'; sRow.appendChild(e);
       const o = document.createElement('th'); o.colSpan = 4; o.className = 'off-hdr'; o.textContent = 'OFFENSE'; sRow.appendChild(o);
       const d = document.createElement('th'); d.colSpan = 4; d.className = 'def-hdr'; d.textContent = 'DEFENSE'; sRow.appendChild(d);
+      thead.appendChild(sRow);
+    } else if (curView === 'ol') {
+      const sRow = document.createElement('tr');
+      sRow.className = 'section-hdr';
+      const e  = document.createElement('th'); e.colSpan  = 3;  e.className = 'empty-hdr'; sRow.appendChild(e);
+      const r  = document.createElement('th'); r.colSpan  = 5;  r.className = 'off-hdr';   r.textContent = 'RETURNING PRODUCTION'; sRow.appendChild(r);
+      const ol = document.createElement('th'); ol.colSpan = 5;  ol.className = 'def-hdr';  ol.textContent = 'OL / PASS PROTECTION'; sRow.appendChild(ol);
+      const pf = document.createElement('th'); pf.colSpan = 5;  pf.className = 'empty-hdr'; pf.textContent = 'PFF GRADES'; pf.style.color='#6b7280'; sRow.appendChild(pf);
       thead.appendChild(sRow);
     }
 
@@ -556,7 +662,7 @@
   }
 
   function renderTable() {
-    const cols = curView === 'power' ? POWER_COLS : EPA_COLS;
+    const cols = curView === 'power' ? POWER_COLS : curView === 'ol' ? OL_COLS : EPA_COLS;
     renderHead();
 
     let rows = allData.filter(d => curConf === 'ALL' || d.conference === curConf);
