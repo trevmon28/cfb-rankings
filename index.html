@@ -95,6 +95,23 @@
     .conf-tab:hover { border-color: var(--blue); color: var(--blue); }
     .conf-tab.active { background: var(--navy); color: white; border-color: var(--navy); }
 
+    /* ── Power rankings chart ── */
+    .chart-wrap { padding: 20px 24px 4px; }
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+      padding: 18px 20px;
+    }
+    .chart-card h2 {
+      font-size: 14px; font-weight: 700; color: var(--gray-700);
+      margin-bottom: 12px; letter-spacing: 0.2px;
+    }
+    .chart-bar-label { font-size: 12px; fill: var(--gray-700); font-weight: 600; }
+    .chart-bar-value { font-size: 11px; fill: var(--gray-500); font-weight: 600; }
+    .chart-bar { fill: var(--blue); }
+    .chart-bar:hover { fill: var(--navy); }
+
     /* ── Table wrapper ── */
     .table-wrap { padding: 20px 24px; overflow-x: auto; }
 
@@ -465,6 +482,13 @@
   </div>
 </div>
 
+<div class="chart-wrap">
+  <div class="chart-card">
+    <h2>Top 15 — Power Score</h2>
+    <div id="rankChart"></div>
+  </div>
+</div>
+
 <div id="tableWrap">
   <div class="table-wrap">
   <table id="rankTable">
@@ -700,6 +724,43 @@
     });
   }
 
+  // ── Power rankings chart (SVG, top 15 by power_score) ───────────────────────
+  // Single series (one hue, var(--blue)) — no legend needed, the card title
+  // names it. Native <title> gives a real browser tooltip per bar with no JS
+  // dependency; direct value labels avoid needing one at all for the exact
+  // number. Sequential job (magnitude across teams), not categorical — the
+  // team name on the y-axis already carries identity, so every bar shares
+  // one color rather than being assigned a distinct hue per team.
+  function renderChart() {
+    const el = document.getElementById('rankChart');
+    const top = [...allData]
+      .filter(d => d.power_score != null)
+      .sort((a, b) => b.power_score - a.power_score)
+      .slice(0, 15);
+    if (top.length === 0) { el.innerHTML = ''; return; }
+
+    const maxScore = Math.max(...top.map(d => d.power_score));
+    const rowH = 26, labelW = 110, valueW = 46, chartW = 560;
+    const barAreaW = chartW - labelW - valueW;
+    const svgH = rowH * top.length;
+
+    const bars = top.map((d, i) => {
+      const y = i * rowH;
+      const w = maxScore > 0 ? Math.max(2, (d.power_score / maxScore) * barAreaW) : 0;
+      const safeName = String(d.team).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      return `
+        <text x="${labelW - 8}" y="${y + rowH / 2 + 4}" text-anchor="end" class="chart-bar-label">${safeName}</text>
+        <rect x="${labelW}" y="${y + 4}" width="${w}" height="${rowH - 8}" rx="3" class="chart-bar">
+          <title>${safeName} — power score ${d.power_score.toFixed(2)}</title>
+        </rect>
+        <text x="${labelW + w + 6}" y="${y + rowH / 2 + 4}" class="chart-bar-value">${d.power_score.toFixed(2)}</text>
+      `;
+    }).join('');
+
+    el.innerHTML = `<svg viewBox="0 0 ${chartW} ${svgH}" width="100%" height="${svgH}" role="img"
+        aria-label="Top ${top.length} teams by power score">${bars}</svg>`;
+  }
+
   // ── Bootstrap ──────────────────────────────────────────────────────────────
   async function init() {
     try {
@@ -711,6 +772,7 @@
       document.getElementById('subtitle').textContent = `${season} Season`;
       document.getElementById('updatedLine').textContent = `Updated: ${updated}`;
       buildConfTabs();
+      renderChart();
       renderTable();
     } catch (e) {
       document.getElementById('updatedLine').textContent = 'No rankings data loaded';
