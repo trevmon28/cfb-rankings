@@ -212,6 +212,93 @@
       color: var(--gray-400); font-size: 14px;
     }
 
+    /* ── Team profile ── */
+    .profile-wrap { display: none; padding: 20px 24px; }
+    .profile-wrap.active { display: block; }
+    .profile-picker {
+      max-width: 860px; margin: 0 auto 16px;
+      display: flex; gap: 10px; align-items: center;
+    }
+    .profile-picker input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+    }
+    .profile-picker input:focus { outline: 2px solid var(--blue); outline-offset: -1px; border-color: var(--blue); }
+
+    .profile-card {
+      max-width: 860px; margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+    .profile-empty {
+      max-width: 860px; margin: 0 auto;
+      text-align: center; padding: 48px 20px;
+      color: var(--gray-400); font-size: 14px;
+      background: white; border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    .profile-header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+      color: white;
+      padding: 20px 28px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .profile-header .name { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; }
+    .profile-header .conf { color: #93c5fd; font-size: 13px; font-weight: 600; margin-left: 10px; }
+    .profile-header .record { color: white; font-size: 15px; font-weight: 700; }
+    .profile-header .season { color: #bfdbfe; font-size: 12px; }
+
+    .profile-tiles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .profile-tile {
+      padding: 16px 12px;
+      text-align: center;
+      border-right: 1px solid var(--gray-200);
+    }
+    .profile-tile:last-child { border-right: none; }
+    .profile-tile .tile-label {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--gray-400); margin-bottom: 6px;
+    }
+    .profile-tile .tile-value { font-size: 26px; font-weight: 800; color: var(--navy); }
+    .profile-tile .tile-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+    .profile-section { padding: 18px 28px; border-bottom: 1px solid var(--gray-100); }
+    .profile-section:last-child { border-bottom: none; }
+    .profile-section h3 {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--blue); margin-bottom: 12px;
+    }
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .stat-box {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .stat-box .stat-label { font-size: 11px; font-weight: 700; color: var(--gray-500); }
+    .stat-box .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .stat-box .stat-rank { font-size: 10px; color: var(--gray-400); margin-top: 1px; }
+
     /* ── Glossary panel ── */
     .glossary-wrap { display: none; padding: 20px 24px; }
     .glossary-wrap.active { display: block; }
@@ -296,6 +383,7 @@
     <button class="toggle-btn active" data-view="power" onclick="setView('power')">POWER RANKINGS</button>
     <button class="toggle-btn" data-view="epa" onclick="setView('epa')">OFFENSE / DEFENSE</button>
     <button class="toggle-btn" data-view="ol" onclick="setView('ol')">OL / RETURNING</button>
+    <button class="toggle-btn" data-view="profile" onclick="setView('profile')">TEAM PROFILE</button>
     <button class="toggle-btn" data-view="glossary" onclick="setView('glossary')">STATS GLOSSARY</button>
   </div>
   <div class="conf-tabs" id="confTabs"></div>
@@ -482,7 +570,15 @@
   </div>
 </div>
 
-<div class="chart-wrap">
+<div class="profile-wrap" id="profileWrap">
+  <div class="profile-picker">
+    <input type="text" id="profileSearch" list="profileTeamList" placeholder="Search a team — e.g. Colorado" autocomplete="off" oninput="onProfileSearch(this.value)">
+    <datalist id="profileTeamList"></datalist>
+  </div>
+  <div id="profileMount"></div>
+</div>
+
+<div class="chart-wrap" id="chartWrap">
   <div class="chart-card">
     <h2>Top 15 — Power Score</h2>
     <div id="rankChart"></div>
@@ -614,11 +710,17 @@
       b.classList.toggle('active', b.dataset.view === view));
 
     const isGlossary = view === 'glossary';
-    document.getElementById('glossaryWrap').classList.toggle('active', isGlossary);
-    document.getElementById('tableWrap').style.display = isGlossary ? 'none' : '';
-    document.getElementById('confTabs').style.display  = isGlossary ? 'none' : '';
+    const isProfile  = view === 'profile';
+    const isTable    = !isGlossary && !isProfile;
 
-    if (!isGlossary) { sortKey = view === 'ol' ? 'ret_pct_ppa' : 'rank'; sortAsc = view !== 'ol'; renderTable(); }
+    document.getElementById('glossaryWrap').classList.toggle('active', isGlossary);
+    document.getElementById('profileWrap').classList.toggle('active', isProfile);
+    document.getElementById('tableWrap').style.display = isTable ? '' : 'none';
+    document.getElementById('chartWrap').style.display = isTable ? '' : 'none';
+    document.getElementById('confTabs').style.display  = isTable ? '' : 'none';
+
+    if (isTable) { sortKey = view === 'ol' ? 'ret_pct_ppa' : 'rank'; sortAsc = view !== 'ol'; renderTable(); }
+    if (isProfile) { buildProfileTeamList(); }
   }
 
   function setConf(conf) {
@@ -759,6 +861,142 @@
 
     el.innerHTML = `<svg viewBox="0 0 ${chartW} ${svgH}" width="100%" height="${svgH}" role="img"
         aria-label="Top ${top.length} teams by power score">${bars}</svg>`;
+  }
+
+  // ── Team profile ───────────────────────────────────────────────────────────
+  let profileTeam = null;
+
+  function buildProfileTeamList() {
+    const dl = document.getElementById('profileTeamList');
+    dl.innerHTML = [...allData]
+      .sort((a, b) => a.team.localeCompare(b.team))
+      .map(d => `<option value="${d.team}">`)
+      .join('');
+    if (profileTeam) renderTeamCard(profileTeam);
+    else renderProfileEmpty();
+  }
+
+  function onProfileSearch(value) {
+    const hit = allData.find(d => d.team.toLowerCase() === value.trim().toLowerCase());
+    if (hit) { profileTeam = hit; renderTeamCard(hit); }
+    else if (!value.trim()) { profileTeam = null; renderProfileEmpty(); }
+  }
+
+  function renderProfileEmpty() {
+    document.getElementById('profileMount').innerHTML =
+      `<div class="profile-empty">Search a team above to see its current-season profile.</div>`;
+  }
+
+  // Client-side FBS rank for a metric — allData already holds every team's
+  // raw values, so there's no need for the export to carry a separate
+  // {metric}_rank column per field; one rank routine here covers all of them.
+  function fbsRankOf(team, col, lowerBetter) {
+    const valid = allData.filter(d => d[col] != null);
+    if (team[col] == null || !valid.length) return null;
+    const sorted = [...valid].sort((a, b) => lowerBetter ? a[col] - b[col] : b[col] - a[col]);
+    const idx = sorted.findIndex(d => d.team === team.team);
+    return idx === -1 ? null : idx + 1;
+  }
+
+  function statBox(label, value, rank, totalN) {
+    const rankStr = rank != null ? `FBS Rk #${rank}${totalN ? ' / ' + totalN : ''}` : '';
+    return `<div class="stat-box">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value">${value}</div>
+      ${rankStr ? `<div class="stat-rank">${rankStr}</div>` : ''}
+    </div>`;
+  }
+
+  function renderTeamCard(team) {
+    const n = allData.length;
+    const record = team.record || '—';
+    const season = document.getElementById('subtitle').textContent;
+
+    const tiles = `
+      <div class="profile-tiles">
+        <div class="profile-tile">
+          <div class="tile-label">FBS Power Rank</div>
+          <div class="tile-value">${team.rank != null ? '#' + team.rank : '—'}</div>
+          <div class="tile-sub">of ${n} FBS teams</div>
+        </div>
+        <div class="profile-tile">
+          <div class="tile-label">${team.conference || 'Conference'} Rank</div>
+          <div class="tile-value">${team.conf_rank != null ? '#' + team.conf_rank : '—'}</div>
+          <div class="tile-sub">&nbsp;</div>
+        </div>
+        <div class="profile-tile">
+          <div class="tile-label">Power Score</div>
+          <div class="tile-value">${team.power_score != null ? team.power_score.toFixed(2) : '—'}</div>
+          <div class="tile-sub">z-score composite</div>
+        </div>
+      </div>`;
+
+    const ratings = `
+      <div class="profile-section">
+        <h3>Efficiency Ratings</h3>
+        <div class="stat-row">
+          ${statBox('SP+', fmtSgn1(team.sp_overall), fbsRankOf(team, 'sp_overall'), n)}
+          ${statBox('SRS', fmtSgn1(team.srs), fbsRankOf(team, 'srs'), n)}
+          ${statBox('FPI', fmtSgn1(team.fpi), fbsRankOf(team, 'fpi'), n)}
+          ${statBox('FEI', fmt2(team.fei), fbsRankOf(team, 'fei'), n)}
+          ${statBox('Elo', team.elo != null ? Math.round(team.elo) : '—', fbsRankOf(team, 'elo'), n)}
+          ${statBox('Talent', fmt1(team.talent), fbsRankOf(team, 'talent'), n)}
+        </div>
+      </div>`;
+
+    const epa = `
+      <div class="profile-section">
+        <h3>Offense</h3>
+        <div class="stat-row">
+          ${statBox('SP+ Offense', fmtSgn1(team.sp_offense), fbsRankOf(team, 'sp_offense'), n)}
+          ${statBox('EPA/Play', fmt3(team.epa_off), fbsRankOf(team, 'epa_off'), n)}
+          ${statBox('Rush EPA', fmt3(team.epa_rush_off), fbsRankOf(team, 'epa_rush_off'), n)}
+          ${statBox('Pass EPA', fmt3(team.epa_pass_off), fbsRankOf(team, 'epa_pass_off'), n)}
+          ${statBox('Success Rate', fmtPct(team.success_off), fbsRankOf(team, 'success_off'), n)}
+          ${statBox('Pts/Game', fmt1(team.avg_points_for), fbsRankOf(team, 'avg_points_for'), n)}
+        </div>
+      </div>
+      <div class="profile-section">
+        <h3>Defense</h3>
+        <div class="stat-row">
+          ${statBox('SP+ Defense', fmtSgn1(team.sp_defense), fbsRankOf(team, 'sp_defense', true), n)}
+          ${statBox('EPA/Play', fmt3(team.epa_def), fbsRankOf(team, 'epa_def', true), n)}
+          ${statBox('Rush EPA', fmt3(team.epa_rush_def), fbsRankOf(team, 'epa_rush_def', true), n)}
+          ${statBox('Pass EPA', fmt3(team.epa_pass_def), fbsRankOf(team, 'epa_pass_def', true), n)}
+          ${statBox('Success Rate', fmtPct(team.success_def), fbsRankOf(team, 'success_def', true), n)}
+          ${statBox('Pts Allowed/Game', fmt1(team.avg_points_against), fbsRankOf(team, 'avg_points_against', true), n)}
+        </div>
+      </div>`;
+
+    const returning = `
+      <div class="profile-section">
+        <h3>Returning Production</h3>
+        <div class="stat-row">
+          ${statBox('Overall', fmtPct(team.ret_pct_ppa), fbsRankOf(team, 'ret_pct_ppa'), n)}
+          ${statBox('QB', fmtPct(team.ret_pct_qb), null)}
+          ${statBox('Skill', fmtPct(team.ret_pct_skill), null)}
+          ${statBox('DL', fmtPct(team.ret_pct_dl), null)}
+          ${statBox('DB', fmtPct(team.ret_pct_db), null)}
+        </div>
+      </div>`;
+
+    document.getElementById('profileMount').innerHTML = `
+      <div class="profile-card">
+        <div class="profile-header">
+          <div>
+            <span class="name">${team.team}</span>
+            <span class="conf">${team.conference || ''}</span>
+          </div>
+          <div style="text-align:right">
+            <div class="record">${record}</div>
+            <div class="season">${season}</div>
+          </div>
+        </div>
+        ${tiles}
+        ${ratings}
+        ${epa}
+        ${returning}
+      </div>`;
   }
 
   // ── Bootstrap ──────────────────────────────────────────────────────────────
