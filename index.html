@@ -640,24 +640,52 @@
 
     <div class="glossary-section">
       <h3>PFF Grades</h3>
+      <p class="g-intro" style="margin-bottom:14px">
+        Play-by-play grades from Pro Football Focus, 0&ndash;100, shown on the
+        <strong>Team Profile</strong> tab. <strong>Thresholds are not the same from one grade
+        to the next</strong>, so a number means little on its own: the median FBS team grades
+        80.4 overall but only 63.3 in run blocking. Each bar on a team profile carries a grey
+        tick at that grade's own FBS median &mdash; read against the tick, not against a
+        remembered rule of thumb.
+      </p>
       <div class="glossary-grid">
         <div class="g-item"><div>
-          <div class="g-label">PFF Off/Def</div>
-          <div class="g-desc">Pro Football Focus overall offensive and defensive team grades on a 0–100 scale. Grades above 70 are above average; above 80 is elite; below 50 is poor.</div>
-          <div class="g-source">Source: PFF College (manual CSV upload — Section 1d)</div>
+          <div class="g-label">Overall / Offense / Defense / Special Teams</div>
+          <div class="g-desc">The four composites. Offense and Defense are near-perfect roll-ups of the unit grades below (R&sup2; 0.98 against them across 1,052 team-seasons); Special Teams is not (R&sup2; 0.15), which is why it carries information the others cannot. FBS medians: 80.4 / 75.0 / 79.2 / 74.1.</div>
+          <div class="g-source">Model inputs &mdash; prior season's value, lagged one year</div>
         </div></div>
         <div class="g-item"><div>
-          <div class="g-label">Pass Blk / Rush</div>
-          <div class="g-desc">PFF pass blocking grade (OL protecting the QB) and pass rush grade (DL/EDGE disrupting the QB). The two most predictive PFF unit grades for game outcomes.</div>
-          <div class="g-source">Source: PFF College (manual CSV upload — Section 1d)</div>
+          <div class="g-label">Passing / Receiving / Pass Blk</div>
+          <div class="g-desc">Offensive unit grades: quarterback play, pass catching, and the line protecting the quarterback. FBS medians 69.7 / 70.4 / 67.1 &mdash; all well below the composite medians, so a 70 here is roughly average rather than weak.</div>
+          <div class="g-source">Displayed only</div>
         </div></div>
         <div class="g-item"><div>
-          <div class="g-label">Coverage</div>
-          <div class="g-desc">PFF coverage grade — how well the secondary limits separation and yards after catch. Displayed only when PFF data has been uploaded for the current season.</div>
-          <div class="g-source">Source: PFF College (manual CSV upload — Section 1d)</div>
+          <div class="g-label">Rushing / Run Blk</div>
+          <div class="g-desc">Ball carriers, and the line blocking for them. The widest gap on the page: rushing's FBS median is 81.5 while run blocking's is 63.3, so the same 72 is poor in one and good in the other.</div>
+          <div class="g-source">Displayed only</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Pass Rush / Coverage / Run Def / Tackling</div>
+          <div class="g-desc">Defensive unit grades: pressure on the quarterback, the secondary limiting separation, front-seven run fits, and open-field tackling. FBS medians 73.1 / 75.1 / 76.7 / 68.7. Nothing else on this dashboard decomposes a defense this way &mdash; SP+, SRS and FPI are single numbers.</div>
+          <div class="g-source">Displayed only</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Point Spread Rating</div>
+          <div class="g-desc">PFF's headline team rating, in points &mdash; roughly what they would favour the team by against an average opponent on a neutral field. Correlates r&nbsp;=&nbsp;0.90 with SP+, so it mostly restates a rating already shown here.</div>
+          <div class="g-source">Displayed only</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Why last season's grades, not this season's</div>
+          <div class="g-desc">A finished season's grade contains every game of that season, so using it to predict a game inside that same season means reading the answer. The model sees the <em>prior</em> season's grades, known before kickoff. The profile page shows the <em>current</em> season's, because a profile predicts nothing and the freshest number is the right one there.</div>
+          <div class="g-source">&nbsp;</div>
         </div></div>
       </div>
-      <div class="g-note"><strong>Note:</strong> PFF grades show as — until a CSV export from your PFF subscription is uploaded via Section 1d of the notebook and rankings are regenerated.</div>
+      <div class="g-note"><strong>On the model:</strong> the four composites entered the
+      prediction model on 2026-09-29 after walk-forward testing, and the gain is small &mdash;
+      Brier improved in 5 of 5 random seeds, but by 0.0004; the AUC change sits inside
+      reseeding noise. Schedule-strength adjustment of the grades was tested three ways and
+      rejected, since SP+, SRS and FPI are already opponent-adjusted. Method and full numbers:
+      <code>research/cfb-autoresearch/log.md</code>, iteration 14.</div>
     </div>
   </div>
 </div>
@@ -692,6 +720,7 @@
     &nbsp;·&nbsp; SP+ (ESPN)
     &nbsp;·&nbsp; SRS &amp; FPI (CFBD)
     &nbsp;·&nbsp; 247Sports Talent Composite
+    &nbsp;·&nbsp; <a href="https://www.pff.com/college" target="_blank">PFF College</a>
   </div>
   </div>
 </div>
