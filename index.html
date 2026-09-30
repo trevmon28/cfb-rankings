@@ -58,6 +58,15 @@
     }
     .toggle-group {
       display: flex;
+      /* The nav row holds five tabs, ~545px of them, against a 390px phone --
+         so the whole page scrolled sideways on EVERY tab, not just this one.
+         Pre-existing; found while checking the PFF section at 390px. The
+         group is centred, so the overflow was symmetric and invisible on
+         desktop. Wrapping is right here: these are peer destinations, and a
+         second line costs nothing. */
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 100%;
       gap: 0;
       background: var(--gray-100);
       border-radius: 8px;
@@ -65,7 +74,13 @@
       border: 1px solid var(--gray-200);
     }
     .toggle-btn {
-      padding: 7px 22px;
+      /* 22px side padding pushed the two-button group to 470px, wider than a
+         phone, so the whole page scrolled sideways on every tab -- not just
+         this control. Pre-existing; found while checking the PFF section at
+         390px. The group is centred, so the overflow was symmetric and easy
+         to miss on desktop. */
+      padding: 7px clamp(11px, 4vw, 22px);
+      white-space: nowrap;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -260,6 +275,15 @@
     .profile-header .record { color: white; font-size: 15px; font-weight: 700; }
     .profile-header .season { color: #bfdbfe; font-size: 12px; }
 
+    .profile-banner {
+      background: var(--blue-light);
+      color: #1e40af;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 28px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
     .profile-tiles {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -298,6 +322,47 @@
     .stat-box .stat-label { font-size: 11px; font-weight: 700; color: var(--gray-500); }
     .stat-box .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
     .stat-box .stat-rank { font-size: 10px; color: var(--gray-400); margin-top: 1px; }
+
+    /* ── PFF grade bars ── */
+    /* One team, thirteen grades on one 0-100 scale: a magnitude comparison
+       across categories, so length encodes the value and a single hue carries
+       identity. The tick is that grade's FBS median, computed from the loaded
+       data rather than asserted -- without it a 78 means nothing, since PFF's
+       grades do not centre where a reader expects. */
+    .grade-group { margin-bottom: 14px; }
+    .grade-group:last-child { margin-bottom: 0; }
+    .grade-group-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--gray-400); margin-bottom: 6px;
+    }
+    .grade-bar-row {
+      display: grid; grid-template-columns: 96px 1fr 44px;
+      align-items: center; gap: 10px; margin-bottom: 5px;
+    }
+    .grade-bar-row .gb-label { font-size: 12px; color: var(--gray-500); font-weight: 600; }
+    .grade-bar-track {
+      position: relative; height: 8px; background: var(--gray-100);
+      border-radius: 4px; overflow: visible;
+    }
+    .grade-bar-fill {
+      height: 8px; border-radius: 4px; background: var(--blue);
+      transition: width .25s ease;
+    }
+    .grade-bar-med {
+      position: absolute; top: -2px; width: 2px; height: 12px;
+      background: var(--gray-400); border-radius: 1px;
+    }
+    .grade-bar-row .gb-val {
+      font-size: 12px; font-weight: 700; color: var(--navy);
+      text-align: right; font-variant-numeric: tabular-nums;
+    }
+    .grade-legend {
+      font-size: 10px; color: var(--gray-400); margin-top: 8px;
+    }
+    @media (max-width: 560px) {
+      .grade-bar-row { grid-template-columns: 78px 1fr 38px; gap: 7px; }
+      .grade-bar-row .gb-label { font-size: 11px; }
+    }
 
     /* ── Glossary panel ── */
     .glossary-wrap { display: none; padding: 20px 24px; }
@@ -379,6 +444,10 @@
 </div>
 
 <div class="controls">
+  <div class="toggle-group" id="seasonToggle">
+    <button class="toggle-btn active" data-season="projected" onclick="setSeasonMode('projected')">LOADING…</button>
+    <button class="toggle-btn" data-season="final" onclick="setSeasonMode('final')">LOADING…</button>
+  </div>
   <div class="toggle-group">
     <button class="toggle-btn active" data-view="power" onclick="setView('power')">POWER RANKINGS</button>
     <button class="toggle-btn" data-view="epa" onclick="setView('epa')">OFFENSE / DEFENSE</button>
@@ -395,12 +464,35 @@
     <p class="g-intro">All metrics are opponent-adjusted where noted. Green values indicate better performance; red indicates worse. For defensive metrics, <em>lower</em> EPA allowed is better (displayed green).</p>
 
     <div class="glossary-section">
+      <h3>How the Projected Ranking Is Built</h3>
+      <p class="g-intro" style="margin-bottom:14px">
+        <strong>PROJECTED</strong> mode blends two things and shifts weight between them automatically as the season plays out —
+        no manual switch, no hard cutover week.
+      </p>
+      <div class="glossary-grid">
+        <div class="g-item"><div>
+          <div class="g-label">The blend</div>
+          <div class="g-desc">Power Score = (preseason weight) &times; Preseason Composite + (1 &minus; preseason weight) &times; this season's actual stats so far. Preseason weight = 3 / (3 + games played) &mdash; 100% preseason at kickoff, roughly 50/50 by game 3, and effectively pure in-season data by week 6-7. The "3" was backtested against 6 real seasons of outcomes, not guessed.</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Preseason Composite</div>
+          <div class="g-desc">A weighted blend of five signals, all knowable before Week 1: last season's SP+/SRS/FPI (40%), returning production &ndash; overall (20%) and QB specifically (8%), 247Sports talent composite (12%), and a coaching/trajectory adjustment (20%, see below). Weights are reasoned, not fit by regression, except the trajectory term.</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Coaching / Trajectory Adjustment</div>
+          <div class="g-desc">Every team's rating pulls slightly toward its own ~20-year historical SP+ baseline (teams that had an unusually good or bad year tend to partly revert) &mdash; plus an extra, larger pull for teams with a new head coach this season. Backtested against 788 real team-seasons (2020-2025): explains ~20% of year-over-year SP+ swings, more than any single other input here.</div>
+          <div class="g-source">Methodology: docs/power_ranking_methodology.md in the CFBAnalytics repo</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
       <h3>Model Metrics</h3>
       <div class="glossary-grid">
         <div class="g-item">
           <div>
             <div class="g-label">Power Score</div>
-            <div class="g-desc">Composite z-score across all efficiency, talent, and ratings metrics. Higher = stronger team overall.</div>
+            <div class="g-desc">Composite z-score across all efficiency, talent, and ratings metrics. Higher = stronger team overall. In PROJECTED mode this is the blended score described above; in FINAL mode it's pure current-season stats with no preseason blend.</div>
             <div class="g-source">Source: CFBAnalytics model</div>
           </div>
         </div>
@@ -606,6 +698,9 @@
 
 <script>
   // ── State ──────────────────────────────────────────────────────────────────
+  let dataBySeason = { projected: [], final: [] };
+  let metaBySeason  = { projected: {}, final: {} };
+  let seasonMode = 'projected';
   let allData   = [];
   let curView   = 'power';
   let curConf   = 'ALL';
@@ -629,6 +724,7 @@
     { key:'rank',             label:'Rk',         fmt: rankFmt,           sortable:true,  align:'center' },
     { key:'team',             label:'Team',        fmt: teamFmt,           sortable:true,  align:'left'   },
     { key:'record',           label:'Rec',         fmt: v=>v||'—',         sortable:false, align:'center', cls: ()=>'record' },
+    { key:'games_played',     label:'G',           fmt: v=>v!=null?v:'—',  sortable:true,  align:'center' },
     { key:'power_score',      label:'Score',       fmt: powerScoreFmt,     sortable:true,  align:'center' },
     { key:'predicted_margin', label:'Pred Margin', fmt: fmtSgn1,           sortable:true,  align:'center', cls: signedCls },
     { key:'elo',              label:'Elo',         fmt: v=>v!=null?Math.round(v):'—', sortable:true, align:'center' },
@@ -968,6 +1064,70 @@
         </div>
       </div>`;
 
+    // FBS median for one grade, from the teams currently loaded. Computed, not
+    // hardcoded: PFF's team grades sit high (median ~80) and a reader with no
+    // reference will read 78 as poor when it is roughly average.
+    function gradeMedian(key) {
+      const v = allData.map(t => t[key]).filter(x => x != null).sort((a, b) => a - b);
+      if (!v.length) return null;
+      const m = Math.floor(v.length / 2);
+      return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+    }
+
+    function gradeBar(label, key) {
+      const val = team[key];
+      if (val == null) {
+        return `<div class="grade-bar-row"><div class="gb-label">${label}</div>
+          <div class="grade-bar-track"></div><div class="gb-val">—</div></div>`;
+      }
+      const med = gradeMedian(key);
+      const tick = med != null
+        ? `<div class="grade-bar-med" style="left:${Math.min(100, Math.max(0, med))}%"
+             title="FBS median ${med.toFixed(1)}"></div>` : '';
+      return `<div class="grade-bar-row">
+          <div class="gb-label">${label}</div>
+          <div class="grade-bar-track">
+            <div class="grade-bar-fill" style="width:${Math.min(100, Math.max(0, val))}%"></div>
+            ${tick}
+          </div>
+          <div class="gb-val">${val.toFixed(1)}</div>
+        </div>`;
+    }
+
+    const hasGrades = team.pff_grade_overall != null;
+    const pff = !hasGrades ? '' : `
+      <div class="profile-section">
+        <h3>PFF Grades</h3>
+        <div class="stat-row" style="margin-bottom:16px">
+          ${statBox('Overall', fmt1(team.pff_grade_overall), fbsRankOf(team, 'pff_grade_overall'), n)}
+          ${statBox('Offense', fmt1(team.pff_grade_offense), fbsRankOf(team, 'pff_grade_offense'), n)}
+          ${statBox('Defense', fmt1(team.pff_grade_defense), fbsRankOf(team, 'pff_grade_defense'), n)}
+          ${statBox('Special Teams', fmt1(team.pff_grade_special), fbsRankOf(team, 'pff_grade_special'), n)}
+          ${statBox('Point Spread Rating', fmtSgn1(team.pff_rating), fbsRankOf(team, 'pff_rating'), n)}
+        </div>
+        <div class="grade-group">
+          <div class="grade-group-label">Offense by unit</div>
+          ${gradeBar('Passing', 'pff_grade_pass')}
+          ${gradeBar('Receiving', 'pff_grade_receiving')}
+          ${gradeBar('Pass block', 'pff_grade_pass_block')}
+          ${gradeBar('Rushing', 'pff_grade_run')}
+          ${gradeBar('Run block', 'pff_grade_run_block')}
+        </div>
+        <div class="grade-group">
+          <div class="grade-group-label">Defense by unit</div>
+          ${gradeBar('Pass rush', 'pff_grade_pass_rush')}
+          ${gradeBar('Coverage', 'pff_grade_coverage')}
+          ${gradeBar('Run defense', 'pff_grade_run_defense')}
+          ${gradeBar('Tackling', 'pff_grade_tackling')}
+        </div>
+        <div class="grade-legend">
+          0-100 scale. Grey tick marks the FBS median for that grade. Overall,
+          Offense, Defense and Special Teams are model inputs; the unit grades
+          are shown because nothing else here decomposes into pass protection,
+          coverage or tackling.
+        </div>
+      </div>`;
+
     const returning = `
       <div class="profile-section">
         <h3>Returning Production</h3>
@@ -979,6 +1139,16 @@
           ${statBox('DB', fmtPct(team.ret_pct_db), null)}
         </div>
       </div>`;
+
+    let banner = '';
+    if (seasonMode === 'projected') {
+      const prePct = team.blend_weight != null ? Math.round(team.blend_weight * 100) : null;
+      const games = team.games_played || 0;
+      const coachNote = team.is_new_hc ? ' · new head coach this season' : '';
+      banner = prePct != null
+        ? `<div class="profile-banner">PROJECTED — ${prePct}% weight on preseason composite (last season's ratings, returning production, talent, coaching trajectory), ${100 - prePct}% on ${games} game${games !== 1 ? 's' : ''} played so far${coachNote}</div>`
+        : `<div class="profile-banner">PROJECTED${coachNote}</div>`;
+    }
 
     document.getElementById('profileMount').innerHTML = `
       <div class="profile-card">
@@ -992,30 +1162,67 @@
             <div class="season">${season}</div>
           </div>
         </div>
+        ${banner}
         ${tiles}
         ${ratings}
         ${epa}
+        ${pff}
         ${returning}
       </div>`;
+  }
+
+  // ── Season toggle ──────────────────────────────────────────────────────────
+  function applySeasonMode() {
+    allData = dataBySeason[seasonMode];
+    const meta = metaBySeason[seasonMode];
+    const season = meta.season || '—';
+    const updated = meta.updated || '—';
+    document.getElementById('subtitle').textContent =
+      seasonMode === 'projected' ? `${season} Season — Live Projection` : `${season} Season — Final`;
+    document.getElementById('updatedLine').textContent = `Updated: ${updated}`;
+
+    document.querySelectorAll('#seasonToggle .toggle-btn').forEach(b => {
+      const mode = b.dataset.season;
+      b.classList.toggle('active', mode === seasonMode);
+      const m = metaBySeason[mode];
+      const label = mode === 'projected' ? 'PROJECTED' : 'FINAL';
+      b.textContent = m.season ? `${m.season} ${label}` : label;
+    });
+
+    buildConfTabs();
+    if (curView === 'profile') {
+      profileTeam = profileTeam ? allData.find(d => d.team === profileTeam.team) || null : null;
+      buildProfileTeamList();
+    } else {
+      renderChart();
+      renderTable();
+    }
+  }
+
+  function setSeasonMode(mode) {
+    if (mode === seasonMode) return;
+    seasonMode = mode;
+    applySeasonMode();
   }
 
   // ── Bootstrap ──────────────────────────────────────────────────────────────
   async function init() {
     try {
-      const res  = await fetch('data/rankings.json');
-      const json = await res.json();
-      allData = json.rankings || [];
-      const season = json.season || '2025';
-      const updated = json.updated || '—';
-      document.getElementById('subtitle').textContent = `${season} Season`;
-      document.getElementById('updatedLine').textContent = `Updated: ${updated}`;
-      buildConfTabs();
-      renderChart();
-      renderTable();
+      const [pRes, fRes] = await Promise.all([
+        fetch('data/rankings.json'),
+        fetch('data/rankings_final.json'),
+      ]);
+      const pJson = await pRes.json();
+      const fJson = await fRes.json();
+      dataBySeason.projected = pJson.rankings || [];
+      dataBySeason.final     = fJson.rankings || [];
+      metaBySeason.projected = { season: pJson.season, updated: pJson.updated };
+      metaBySeason.final     = { season: fJson.season, updated: fJson.updated };
+      applySeasonMode();
     } catch (e) {
       document.getElementById('updatedLine').textContent = 'No rankings data loaded';
       document.getElementById('tableBody').innerHTML =
-        `<tr class="empty-row"><td colspan="13">Could not load rankings.json — run the notebook to generate data.</td></tr>`;
+        `<tr class="empty-row"><td colspan="14">Could not load rankings data — run the pipeline to generate it.</td></tr>`;
     }
   }
 
