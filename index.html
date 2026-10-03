@@ -475,6 +475,45 @@
           <div class="g-desc">Power Score = (preseason weight) &times; Preseason Composite + (1 &minus; preseason weight) &times; this season's actual stats so far. Preseason weight = 3 / (3 + games played) &mdash; 100% preseason at kickoff, roughly 50/50 by game 3, and effectively pure in-season data by week 6-7. The "3" was backtested against 6 real seasons of outcomes, not guessed.</div>
         </div></div>
         <div class="g-item"><div>
+          <div class="g-label">What the in-season half weighs</div>
+          <div class="g-desc">
+            EPA offence and defence (0.14 each), Elo (0.12), SP+ (0.10),
+            strength of schedule (0.10), success rate offence and defence
+            (0.08 each), yards per play allowed (0.073) and gained (0.041),
+            havoc (0.004). Renormalised over whatever is available, so a
+            partially-ingested season still ranks.
+          </div>
+          <div class="g-source">Updated 2026-10-03 &mdash; see below</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">Two weights changed on 2026-10-03</div>
+          <div class="g-desc">
+            The in-season weights had been set by judgement rather than fitted.
+            Fitting them against a neutral test &mdash; whether the rating
+            predicted who won the <em>following</em> week's games, across 64
+            season-weeks and 4,800+ games &mdash; produced two changes that stood
+            on their own. <strong>Havoc fell from 0.06 to 0.004</strong>: it earned
+            under 1% of fitted weight and was negative in 3 of 5 test years.
+            <strong>Yards per play entered at 0.114 combined</strong>, second only
+            to EPA; it had been listed as an input since the ranking was built
+            but was never actually wired up, so it had always counted zero.
+            Median movement was 2 places.
+          </div>
+          <div class="g-source">research/cfb-autoresearch/log.md, iteration 18</div>
+        </div></div>
+        <div class="g-item"><div>
+          <div class="g-label">What is still <em>not</em> fitted</div>
+          <div class="g-desc">
+            Elo, SP+ and success rate &mdash; 46% of the in-season weight &mdash;
+            keep hand-set values, because no week-by-week history of them exists
+            to fit against: those tables stored one row per season and overwrote
+            it nightly. Weekly snapshots now accumulate, so this becomes
+            answerable next season. Stated plainly because "fitted" describes
+            half this measure, not all of it.
+          </div>
+          <div class="g-source">&nbsp;</div>
+        </div></div>
+        <div class="g-item"><div>
           <div class="g-label">Preseason Composite</div>
           <div class="g-desc">A weighted blend of five signals, all knowable before Week 1: last season's SP+/SRS/FPI (40%), returning production &ndash; overall (20%) and QB specifically (8%), 247Sports talent composite (12%), and a coaching/trajectory adjustment (20%, see below). Weights are reasoned, not fit by regression, except the trajectory term.</div>
         </div></div>
