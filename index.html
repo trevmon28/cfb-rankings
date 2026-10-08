@@ -128,20 +128,41 @@
     .chart-bar:hover { fill: var(--navy); }
 
     /* ── Table wrapper ── */
-    .table-wrap { padding: 20px 24px; overflow-x: auto; }
+    /* No overflow here on desktop. `overflow-x: auto` computes overflow-y to
+       `auto` as well, which makes this element a scroll container -- and a
+       sticky <th> inside then sticks to THIS box rather than the viewport.
+       The box is as tall as its content, so it never scrolls vertically and
+       the header never pins. Dropping it is what makes the pinned header
+       work at all. */
+    .table-wrap { padding: 20px 24px; }
 
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
       border-radius: 12px;
-      overflow: hidden;
+      /* `overflow: hidden` was here to clip the rounded corners. It is the
+         second thing that breaks a sticky <th>, for the same reason as the
+         wrapper above, so the corners are rounded on the corner CELLS
+         instead (below) and the clip is gone. */
       box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
       font-size: 13px;
     }
+    thead tr:first-child th:first-child { border-top-left-radius: 12px; }
+    thead tr:first-child th:last-child  { border-top-right-radius: 12px; }
+    tbody tr:last-child td:first-child  { border-bottom-left-radius: 12px; }
+    tbody tr:last-child td:last-child   { border-bottom-right-radius: 12px; }
 
     /* Section header row (EPA view) */
+    /* Both header rows pin. `top` is set from JS (pinHeaders) rather than
+       hardcoded, because the controls bar above is itself sticky and its
+       height changes when the nav wraps on a narrow screen -- a fixed offset
+       would leave a gap on desktop or overlap on mobile. The section row
+       pins under the controls; the column row pins under the section row,
+       which only exists in some views. */
     .section-hdr th {
+      position: sticky;
+      z-index: 4;
       padding: 8px 12px;
       font-size: 11px;
       font-weight: 800;
@@ -156,6 +177,8 @@
 
     /* Col header row */
     thead tr.col-hdr th {
+      position: sticky;
+      z-index: 4;
       padding: 10px 14px;
       font-size: 11px;
       font-weight: 700;
@@ -431,7 +454,10 @@
       .header { padding: 20px 16px; }
       .header h1 { font-size: 22px; }
       .controls { padding: 12px 16px; }
-      .table-wrap { padding: 12px 8px; }
+      /* Narrow screens need the sideways scroll more than they need a pinned
+         header, and the two are mutually exclusive (see .table-wrap above).
+         Horizontal scrolling wins here; pinning wins on desktop. */
+      .table-wrap { padding: 12px 8px; overflow-x: auto; }
     }
   </style>
 </head>
@@ -949,6 +975,7 @@
       hRow.appendChild(th);
     });
     thead.appendChild(hRow);
+    pinHeaders();
   }
 
   function renderTable() {
@@ -1238,6 +1265,27 @@
         ${returning}
       </div>`;
   }
+
+
+  // Pin the table header below the sticky controls bar. Measured rather than
+  // hardcoded: the controls bar wraps to two or three lines depending on
+  // width, so its height is not a constant. Re-run after every header build
+  // and on resize.
+  function pinHeaders() {
+    const controls = document.querySelector('.controls');
+    const navH = controls ? Math.round(controls.getBoundingClientRect().height) : 0;
+    const thead = document.getElementById('tableHead');
+    if (!thead) return;
+    const section = thead.querySelector('tr.section-hdr');
+    const secH = section ? Math.round(section.getBoundingClientRect().height) : 0;
+    if (section) {
+      section.querySelectorAll('th').forEach(th => { th.style.top = navH + 'px'; });
+    }
+    thead.querySelectorAll('tr.col-hdr th').forEach(th => {
+      th.style.top = (navH + secH) + 'px';
+    });
+  }
+  window.addEventListener('resize', pinHeaders);
 
   // ── Season toggle ──────────────────────────────────────────────────────────
   function applySeasonMode() {
